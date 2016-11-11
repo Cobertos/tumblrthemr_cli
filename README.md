@@ -66,8 +66,8 @@ To build the app from source you will require the following
  * python2.7
  * bottle
  * jinja2
- * wx [framework]
- * distutils
+ * dateutil
+ * BeautifulSoup
 
 ## Todo
  * Implement full tumblr spec
