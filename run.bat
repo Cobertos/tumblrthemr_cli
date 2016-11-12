@@ -1,1 +1,1 @@
-C:\python27\python.exe src/server.py --project ../TumblrThemePortfolio/Portfolio --index portfolio.html
+C:\python27\python.exe src/server.py --project ../TumblrThemePortfolio/Portfolio/dist --index portfolio.html

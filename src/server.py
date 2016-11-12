@@ -12,6 +12,7 @@ import webbrowser
 from BeautifulSoup import BeautifulSoup as Soup
 import pickle
 import errno
+import traceback
 from glob import glob
 
 from jinja2 import Template
@@ -47,8 +48,10 @@ def startServer(projPath, dataSrc, port, indexFile):
 			contextDataMap = engine.ContextDataMapper( dataSrc['response'], contextTemplate )
 			# Render the tumblr template with the data map we constructed
 			output = tpl.render(contextDataMap)
-		except Exception, e:
-			return 'Template Compile Error : ' + e.message
+		except Exception as e:
+			e = 'Template Compile Error : ' + traceback.format_exc(e)
+			e = '<pre>' + e + '</pre>'
+			return e
 
 		# Fetch hthe default context mapper template 
 		e_time = time.time()

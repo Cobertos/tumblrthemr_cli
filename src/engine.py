@@ -12,7 +12,7 @@ import dateutil.parser as dparser
 
 class Token(object):
 	TOKEN_STRING = "token:string"
-	TOKEN_BLOCK_START = "token:block"
+	TOKEN_BLOCK_START = "token:block_start"
 	TOKEN_BLOCK_END = "token:block_end"
 	TOKEN_VAR = "token:var"
 	TOKEN_META_VAR = "token:meta_var"
@@ -252,6 +252,7 @@ class Parser(object):
 		currentNode = self.root
 		self.stack.push( currentNode )
 		for eachToken in self.tokens:
+			print(eachToken.type)
 			if eachToken.type == Token.TOKEN_BLOCK_START:
 				currentNode = BlockNode( eachToken.value() )
 				self.stack.push( currentNode )
@@ -263,7 +264,7 @@ class Parser(object):
 					currentNode = self.stack.top()
 					currentNode.push( blockNode )
 				else:
-					raise Exception("Mismatched block %s" % self.stack.top().blockName)
+					raise Exception("Mismatched block %s" % self.stack)
 			else:
 				# print currentNode
 				currentNode.push( NodeFactory.create( eachToken ) )
@@ -354,10 +355,6 @@ class Template(object):
 	def compile(self):
 		lexer = Lexer( self.templateString )
 		self.tokens = lexer.tokens()
-		
-		# print 'tokens', self.tokens
-		# for each in self.tokens:
-		# 	print each.type
 
 		parser = Parser( self.tokens )
 		self.parseTree = parser.parse()
