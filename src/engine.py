@@ -57,11 +57,15 @@ class Lexer(object):
 		self.lex_pos = 0
 
 	def tokenize(self):
+		currLine = 1
 		self.iter_blocks = self.re_tokens.finditer( self.content )
 		for eachBlock in self.iter_blocks:
 			span_start, span_end = eachBlock.span()
 			if span_start - self.lex_pos > 0:
-				yield Token( Token.TOKEN_STRING, self.content[self.lex_pos:span_start] )
+				strToken = self.content[self.lex_pos:span_start]
+				lineCount = len(re.findall("\n\r?", strToken))
+				currLine += lineCount
+				yield (Token( Token.TOKEN_STRING, strToken ), currLine)
 				self.lex_pos = span_start
 
 			if span_start - self.lex_pos == 0:
@@ -78,40 +82,41 @@ class Lexer(object):
 						tokenData = tokenData.strip()
 
 						if token == '/block':
-							yield Token( Token.TOKEN_BLOCK_END, tokenData )
+							(yield Token( Token.TOKEN_BLOCK_END, tokenData ), currLine)
 						elif token == 'block':
-							yield Token( Token.TOKEN_BLOCK_START, tokenData )
+							(yield Token( Token.TOKEN_BLOCK_START, tokenData ), currLine)
 						elif token == 'lang':
-							yield Token( Token.TOKEN_VAR_LANG, tokenData )
+							(yield Token( Token.TOKEN_VAR_LANG, tokenData ), currLine)
 						elif token == 'text':
-							yield Token( Token.TOKEN_VAR_TEXT, tokenData )
+							(yield Token( Token.TOKEN_VAR_TEXT, tokenData ), currLine)
 						elif token == 'color':
-							yield Token( Token.TOKEN_VAR_COLOR, tokenData )
+							(yield Token( Token.TOKEN_VAR_COLOR, tokenData ), currLine)
 					else:
 						varMatch = self.re_var.findall( rawToken )
 						if len(varMatch) > 0:
 							tokenData = varMatch.pop()
-							yield Token( Token.TOKEN_VAR, tokenData )
+							(yield Token( Token.TOKEN_VAR, tokenData ), currLine)
 						else:
 							varArgMatch = self.re_var_args.findall( rawToken )
 							argName = self.re_var_name.findall( rawToken )
 							if len(varArgMatch) > 0 and len(argName) > 0:
 								argName = argName.pop()
 								argParams = { key:val for key,val in varArgMatch }
-								yield Token( Token.TOKEN_VAR, argName, argParams )
+								(yield Token( Token.TOKEN_VAR, argName, argParams ), currLine)
 							else:
 								pass
 								#print rawToken
 								# Yield String
 		content_end = len(self.content)
 		if content_end - self.lex_pos > 0:
-			yield Token( Token.TOKEN_STRING, self.content[self.lex_pos:content_end] )
+			(yield Token( Token.TOKEN_STRING, self.content[self.lex_pos:content_end] ), currLine)
 			self.lex_pos = content_end
 
-	def tokens(self):
+	def tokenLinePairs(self):
 		return list(self.tokenize())
-
-
+			
+	def tokens(self):
+		return [i[0] for i in self.tokenLinePairs()]
 
 class Node(object):
 	def __init__(self):
@@ -242,8 +247,8 @@ class NodeFactory(object):
 			return StringNode( token.value() )
 
 class Parser(object):
-	def __init__(self,tokens):
-		self.tokens = tokens
+	def __init__(self,tokenLinePairs):
+		self.tokenLinePairs = tokenLinePairs
 		self.root = None
 		self.stack = SymbolStack()
 
@@ -251,8 +256,8 @@ class Parser(object):
 		self.root = Node()
 		currentNode = self.root
 		self.stack.push( currentNode )
-		for eachToken in self.tokens:
-			print(eachToken.type)
+		for eachToken, lineNum in self.tokenLinePairs:
+			print(eachToken.type + " " + str(lineNum))
 			if eachToken.type == Token.TOKEN_BLOCK_START:
 				currentNode = BlockNode( eachToken.value() )
 				self.stack.push( currentNode )
@@ -264,7 +269,7 @@ class Parser(object):
 					currentNode = self.stack.top()
 					currentNode.push( blockNode )
 				else:
-					raise Exception("Mismatched block %s" % self.stack)
+					raise Exception("Mismatched block %s @ line %d" % (self.stack, lineNum))
 			else:
 				# print currentNode
 				currentNode.push( NodeFactory.create( eachToken ) )
@@ -348,15 +353,15 @@ class ContextDataMapper(object):
 class Template(object):
 	def __init__(self,templateString):
 		self.templateString = templateString
-		self.tokens = None
+		self.tokenLinePairs = None
 		self.parseTree = None
 		# self.compile()
 
 	def compile(self):
 		lexer = Lexer( self.templateString )
-		self.tokens = lexer.tokens()
+		self.tokenLinePairs = lexer.tokenLinePairs()
 
-		parser = Parser( self.tokens )
+		parser = Parser( self.tokenLinePairs )
 		self.parseTree = parser.parse()
 
 	def render(self,context):
