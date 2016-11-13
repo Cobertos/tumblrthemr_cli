@@ -47,9 +47,9 @@ class SymbolStack(list):
 class Lexer(object):
 	def __init__(self, content):
 		self.content = content
-		self.re_tokens = re.compile( "\{\s*(.*?)\}",re.IGNORECASE)
+		self.re_tokens = re.compile( "\{([\w\d=\"':\/]+\s?)+?\}",re.IGNORECASE)
 
-		self.re_block = re.compile( "^(\/?Block|text|lang|color)\s*:?(.*?$)", re.IGNORECASE )
+		self.re_block = re.compile( "^(\/?block|text|lang|color):([\w\d =\"']+?$)", re.IGNORECASE )
 		self.re_var = re.compile("^[a-zA-Z0-9_-]*$", re.IGNORECASE)
 		self.re_var_args = re.compile("(\S+)=[\"']?((?:.(?![\"']?\s+(?:\S+)=|[>\"']))+.)[\"']?", re.IGNORECASE)
 		self.re_var_name = re.compile("^[a-zA-Z0-9]+\s?", re.IGNORECASE)
@@ -70,6 +70,8 @@ class Lexer(object):
 
 			if span_start - self.lex_pos == 0:
 				rawToken = eachBlock.groups()[0]
+				print(currLine)
+				print(rawToken)
 				self.lex_pos = span_end
 				if rawToken:
 					rawToken = rawToken.strip()
