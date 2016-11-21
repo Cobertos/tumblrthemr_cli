@@ -1,26 +1,25 @@
-import engine
-import urllib
+from __future__ import print_function
+
+import webbrowser
 import argparse
 import sys
-import bottle
 import time
 import json
 import re
 import os
 import os.path
-import webbrowser
-from BeautifulSoup import BeautifulSoup as Soup
-import pickle
-import errno
 import traceback
-from glob import glob
 
+from flask import Flask, safe_join, send_from_directory
+from BeautifulSoup import BeautifulSoup as Soup
 from jinja2 import Template
 
+import engine
 
-def startServer(projPath, dataSrc, port, indexFile):
+def getApp(projPath, dataSrc, indexFile):
 	#Create our server
-	app = bottle.Bottle()
+	app = Flask(__name__)
+	app.debug = True
 
 	#def render(name, values):
 	#	template_content = open("templates/%s" % name, 'r').read()
@@ -57,46 +56,30 @@ def startServer(projPath, dataSrc, port, indexFile):
 		e_time = time.time()
 		debug_info = "\n<!-- Time to compile and render: %s -->" % (e_time-s_time)
 		return output + debug_info
-
-
-	@app.error(404)
-	def render_404(**kwargs):
-		return '404!'
-
+		
 	@app.route('/')
-	@app.route("/<file_path:re:.*>")
-	def render_page(**kwargs):
-		#global projPath
-		# TODO:Simplify
-		file_path = kwargs.get('file_path',indexFile)
-		if file_path is '':
-			file_path = indexFile
-
-		# Get started
-		file_path = projPath + file_path
-		print "Serving path -> ", file_path, os.path.exists(file_path)
-
-		if os.path.exists(file_path):
-			# If its ending with html, render it as a tumblr theme
-			if file_path.lower().endswith('.html') or file_path.lower().endswith('.htm'):
-				return render_theme(file_path)
-			else:
-				# Serve it from the theme's directory
-				return bottle.static_file(file_path,projPath)
+	def default():
+		return render_page("")
+		
+	@app.route("/<path:file>")
+	def render_page(file):
+		if file is "":
+			file = indexFile
+		
+		filePath = safe_join(projPath, file)
+		# If its ending with html, render it as a tumblr theme
+		if os.path.exists(filePath) and (filePath.lower().endswith('.html') or filePath.lower().endswith('.htm')):
+			return render_theme(filePath)
 		else:
-			return '404 - %s | %s' % (file_path,projPath) #+ render_404()
+			# Serve it from the theme's directory]
+			print(filePath, file=sys.stderr)
+			return send_from_directory(projPath, file)
 	
-	#Open the web browser
-	webbrowser.open( "http://localhost:%s" %(port) )
-	#Start the web server
-	print "DO START (%s,%s)" % (projPath,port);
-	#Start the server
-	bottle.debug()
-	bottle.run( app, host='localhost', port=port, reloader=False )
+	return app
 	
 def main():
-	print "TumblrThemr";
-	print ("Current working directory:" + os.path.abspath("."))
+	print("TumblrThemr")
+	print("Current working directory:" + os.path.abspath("."))
 	#Parse args
 	argp = argparse.ArgumentParser()
 	argp.add_argument( '--data', default="./src/data/sampleData.json")
@@ -112,17 +95,24 @@ def main():
 
 	#Fail on improper args
 	if not projPath or not os.path.isdir(projPath):
-		print "No --project provided or --project was not directory!"
+		print("No --project provided or --project was not directory!")
 		sys.exit(-1)
 		
 	if not dataPath or not os.path.isfile(dataPath):
-		print "--data not found"
+		print("--data not found")
 	
 	#Load the json data
 	dataSrc = json.load( open(dataPath,'r') )
 	
 	#Start the test server
-	startServer(projPath, dataSrc, port, indexFile)
+	app = getApp(projPath, dataSrc, indexFile)
+	
+	#Open the web browser
+	#webbrowser.open( "http://localhost:%s" %(port) )
+	#Start the web server
+	#print("DO START (%s,%s)" % (projPath,port), file=sys.stderr)
+	#Run the app
+	app.run(host='localhost', port=port)
 
 # Get things from command line - makes it easy for testing
 if __name__ == "__main__":

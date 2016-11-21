@@ -70,8 +70,6 @@ class Lexer(object):
 
 			if span_start - self.lex_pos == 0:
 				rawToken = eachBlock.groups()[0]
-				print(currLine)
-				print(rawToken)
 				self.lex_pos = span_end
 				if rawToken:
 					rawToken = rawToken.strip()
@@ -259,7 +257,7 @@ class Parser(object):
 		currentNode = self.root
 		self.stack.push( currentNode )
 		for eachToken, lineNum in self.tokenLinePairs:
-			print(eachToken.type + " " + str(lineNum))
+			#print(eachToken.type + " " + str(lineNum))
 			if eachToken.type == Token.TOKEN_BLOCK_START:
 				currentNode = BlockNode( eachToken.value() )
 				self.stack.push( currentNode )
