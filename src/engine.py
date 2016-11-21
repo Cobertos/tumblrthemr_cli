@@ -1,10 +1,12 @@
+from __future__ import print_function
+
 #################################################
 ### TumblrTemplatr
 ### The main engine. This is it.
 #################################################
 
-import bottle
 import re
+import sys
 import json
 import types
 import time
@@ -47,9 +49,9 @@ class SymbolStack(list):
 class Lexer(object):
 	def __init__(self, content):
 		self.content = content
-		self.re_tokens = re.compile( "\{([\w\d=\"':\/]+\s?)+?\}",re.IGNORECASE)
+		self.re_tokens = re.compile( "\{([\w\d\-=\"':\/]+\s?)+?\}",re.IGNORECASE)
 
-		self.re_block = re.compile( "^(\/?block|text|lang|color):([\w\d =\"']+?$)", re.IGNORECASE )
+		self.re_block = re.compile( "^(\/?block|text|lang|color):([\w\d \-=\"']+?$)", re.IGNORECASE )
 		self.re_var = re.compile("^[a-zA-Z0-9_-]*$", re.IGNORECASE)
 		self.re_var_args = re.compile("(\S+)=[\"']?((?:.(?![\"']?\s+(?:\S+)=|[>\"']))+.)[\"']?", re.IGNORECASE)
 		self.re_var_name = re.compile("^[a-zA-Z0-9]+\s?", re.IGNORECASE)
@@ -403,7 +405,7 @@ def _photo_url(size):
 		mySizeIndex = all_sizes.index(optimum_size)
 
 		return all_sizes_nodes[ mySizeIndex ]['url']
-		# print all_sizes, size
+		print(all_sizes, size, file=sys.stderr)
 		return '#'
 
 	return __url_func
